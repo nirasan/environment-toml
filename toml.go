@@ -71,7 +71,7 @@ func getBasicValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (refle
 }
 
 func getArrayValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (reflect.Value, error) {
-	if t.Kind() != reflect.Array || t.Kind() != reflect.Slice {
+	if t.Kind() != reflect.Array && t.Kind() != reflect.Slice {
 		return nilValue, errors.New("invalid type")
 	}
 	p, err := findPath(tree, elem, env)
@@ -80,7 +80,7 @@ func getArrayValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (refle
 	}
 	v := tree.Get(p)
 	et := t.Elem()
-	rv := reflect.New(t).Elem()
+	rv := reflect.MakeSlice(t, 0, 0)
 	
 	switch ary := v.(type) {
 	case []*toml.TomlTree:
@@ -89,11 +89,11 @@ func getArrayValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (refle
 			if e != nil {
 				return nilValue, e
 			}
-			reflect.Append(rv, ev)
+			rv = reflect.Append(rv, ev)
 		}
 	case []interface{}:
 		for _, a := range ary {
-			reflect.Append(rv, reflect.ValueOf(a))
+			rv = reflect.Append(rv, reflect.ValueOf(a))
 		}
 	default:
 		return nilValue, errors.New("Invalid type")
@@ -102,7 +102,7 @@ func getArrayValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (refle
 }
 
 func getMapValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (reflect.Value, error) {
-	if t.Kind() != reflect.Map {
+	if t.Kind() != reflect.Map || t.Key().Kind() != reflect.String {
 		return nilValue, errors.New("invalid type")
 	}
 	target := tree
@@ -121,10 +121,13 @@ func getMapValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (reflect
 		}
 	}
 	// get map value from tree
-	rv := reflect.New(t).Elem()
+	rv := reflect.MakeMap(t)
 	for _, k := range target.Keys() {
-		kv := reflect.ValueOf(k)
-		rv.SetMapIndex(kv, reflect.ValueOf(target.Get(k)))
+		v, err := getValue(t.Elem(), target, k, env)
+		if err != nil {
+			continue
+		}
+		rv.SetMapIndex(reflect.ValueOf(k), v)
 	}
 	return rv, nil
 }

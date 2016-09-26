@@ -8,30 +8,6 @@ import (
 	"log"
 )
 
-//type Config struct {
-//	User          string
-//	Password      string
-//	MaxConnection int64
-//	Timeout       float64
-//	ShowSlowQuery bool
-//	//Addresses     []string
-//	Postgres      Postgres `toml:postgres`
-//}
-//
-//type Postgres struct {
-//	User     string `toml:user`
-//	Password string `toml:password`
-//}
-//
-//func TestLoad(t *testing.T) {
-//	c := &Config{}
-//	e := Load(c, "test/config.toml", "development")
-//	if e != nil {
-//		t.Error(e)
-//	}
-//	log.Println(c)
-//}
-
 func TestGetValue_basic(t *testing.T) {
 	tree, e := toml.Load(`
 	user = "admin"
@@ -51,7 +27,7 @@ func TestGetValue_basic(t *testing.T) {
 		t.Fatal(e)
 	}
 	if v.Interface().(string) != "root" {
-		fmt.Errorf("failed to load user data: %v", v)
+		t.Error(fmt.Sprintf("failed to load user data: %v", v))
 	}
 
 	// production
@@ -60,8 +36,80 @@ func TestGetValue_basic(t *testing.T) {
 		t.Fatal(e)
 	}
 	if v.Interface().(string) != "admin" {
-		fmt.Errorf("failed to load user data: %v", v)
+		t.Error(fmt.Sprintf("failed to load user data: %v", v))
 	}
+}
+
+func TestGetValue_map(t *testing.T) {
+	tree, e := toml.Load(`
+	[database]
+	user = "admin"
+	pass = "admin"
+	[database.development]
+	user = "root"
+	`)
+	if e != nil {
+		t.Fatal(e)
+	}
+
+	mapType := reflect.TypeOf(map[string]string{})
+
+	// development
+	v, e := getValue(mapType, tree, "database", "development")
+	if e != nil {
+		t.Fatal(e)
+	}
+	m, ok := v.Interface().(map[string]string)
+	if !ok || m["user"] != "root" {
+		t.Error(fmt.Sprintf("failed to load user data: %v", v))
+	}
+	log.Println(v)
+
+	// production
+	v, e = getValue(mapType, tree, "database", "production")
+	if e != nil {
+		t.Fatal(e)
+	}
+	m, ok = v.Interface().(map[string]string)
+	if !ok || m["user"] != "admin" {
+		t.Error(fmt.Sprintf("failed to load user data: %v", v))
+	}
+	log.Println(v)
+}
+
+func TestGetValue_basicarray(t *testing.T) {
+	tree, e := toml.Load(`
+	users = ["admin", "root"]
+	[development]
+	users = ["devuser"]
+	`)
+	if e != nil {
+		t.Fatal(e)
+	}
+
+	arrayType := reflect.TypeOf([]string{})
+
+	// development
+	v, e := getValue(arrayType, tree, "users", "development")
+	if e != nil {
+		t.Fatal(e)
+	}
+	m, ok := v.Interface().([]string)
+	if !ok || len(m) != 1 || m[0] != "devuser" {
+		t.Error(fmt.Sprintf("failed to load user data: %v", v))
+	}
+	log.Println(v)
+
+	// production
+	v, e = getValue(arrayType, tree, "users", "production")
+	if e != nil {
+		t.Fatal(e)
+	}
+	m, ok = v.Interface().([]string)
+	if !ok || len(m) != 2 || m[0] != "admin" {
+		t.Error(fmt.Sprintf("failed to load user data: %v", v))
+	}
+	log.Println(v)
 }
 
 func TestGetValue_struct(t *testing.T) {
@@ -88,9 +136,9 @@ func TestGetValue_struct(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	vi, ok := v.Interface().(Conf)
-	if !ok || vi.User != "root" {
-		fmt.Errorf("failed to load user data: %v", v)
+	s, ok := v.Interface().(Conf)
+	if !ok || s.User != "root" {
+		t.Error(fmt.Sprintf("failed to load user data: %v", v))
 	}
 	log.Println(v)
 
@@ -99,119 +147,96 @@ func TestGetValue_struct(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	vi, ok = v.Interface().(Conf)
-	if !ok || vi.User != "root" {
-		fmt.Errorf("failed to load user data: %v", v)
+	s, ok = v.Interface().(Conf)
+	if !ok || s.User != "admin" {
+		t.Error(fmt.Sprintf("failed to load user data: %v", v))
 	}
 	log.Println(v)
 }
 
-/*
-func TestLoadData_struct(t *testing.T) {
+func TestGetValue_arraystruct(t *testing.T) {
 	tree, e := toml.Load(`
-	[database]
-	user = "admin"
-	pass = "admin"
-	[database.development]
-	user = "root"
-	`)
-	if e != nil {
-		t.Fatal(e)
-	}
-
-	type Database struct {
-		User string
-		Pass string
-	}
-
-	type Conf struct {
-		Database Database
-	}
-
-	c := &Conf{}
-
-	loadData(getFieldValue(c, "Database", "User"), tree, "database", "user", "development")
-	if c.Database.User != "root" {
-		log.Println(c)
-		t.Error("failed to load user data")
-	}
-
-	loadData(getFieldValue(c, "Database", "User"), tree, "database", "user", "production")
-	if c.Database.User != "admin" {
-		log.Println(c)
-		t.Error("failed to load user data")
-	}
-}
-
-func TestLoadData_array(t *testing.T) {
-	tree, e := toml.Load(`
-	users = ["admin", "user1"]
-	[development]
-	users = ["root"]
-	`)
-	if e != nil {
-		t.Fatal(e)
-	}
-
-	type Conf struct {
-		Users []string
-	}
-
-	c := &Conf{}
-
-	loadData(getFieldValue(c, "Users"), tree, "", "users", "development")
-	if len(c.Users) != 1 || c.Users[0] != "root" {
-		log.Println(c)
-		t.Error("failed to load user data")
-	}
-
-	loadData(getFieldValue(c, "Users"), tree, "", "users", "production")
-	if len(c.Users) != 2 || c.Users[0] != "admin" {
-		log.Println(c)
-		t.Error("failed to load user data")
-	}
-}
-
-func TestLoadData_arraystruct(t *testing.T) {
-	tree, e := toml.Load(`
-	[[databases]]
+	[[database]]
 	user = "user1"
 	pass = "pass1"
-
-	[[databases]]
+	[[database]]
 	user = "user2"
 	pass = "pass2"
-
-	[[databases.development]]
-	user = "userdev"
-	pass = "passdev"
+	[[development.database]]
+	user = "devuser1"
+	pass = "devpass1"
 	`)
 	if e != nil {
 		t.Fatal(e)
 	}
 
-	type Database struct {
+	type Conf struct {
 		User string
 		Pass string
 	}
 
-	type Conf struct {
-		Databases []Database
-	}
+	arrayStructType := reflect.TypeOf([]Conf{})
 
-	c := &Conf{}
-
-	loadData(getFieldValue(c, "Databases"), tree, "", "databases", "development")
-	if len(c.Databases) != 1 || c.Databases[0].User != "userdev" {
-		log.Println("arraystruct:", c)
-		t.Error("failed to load user data")
+	// development
+	v, e := getValue(arrayStructType, tree, "database", "development")
+	if e != nil {
+		t.Fatal(e)
 	}
-
-	loadData(getFieldValue(c, "Databases"), tree, "", "databases", "production")
-	if len(c.Databases) != 2 || c.Databases[0].User != "user1" {
-		log.Println("arraystruct:"+
-			"", c)
-		t.Error("failed to load user data")
+	s, ok := v.Interface().([]Conf)
+	if !ok || len(s) != 1 || s[0].User != "devuser1" {
+		t.Error(fmt.Sprintf("failed to load user data: %v", v))
 	}
+	log.Println("array struct 1:", s)
+
+	// production
+	v, e = getValue(arrayStructType, tree, "database", "production")
+	if e != nil {
+		t.Fatal(e)
+	}
+	s, ok = v.Interface().([]Conf)
+	if !ok || len(s) != 2 || s[0].User != "user1" {
+		t.Error(fmt.Sprintf("failed to load user data: %v", v))
+	}
+	log.Println("arrya struct 2:", s)
 }
-*/
+
+func TestGetValue_arraymap(t *testing.T) {
+	tree, e := toml.Load(`
+	[[database]]
+	user = "user1"
+	pass = "pass1"
+	[[database]]
+	user = "user2"
+	pass = "pass2"
+	[[development.database]]
+	user = "devuser1"
+	pass = "devpass1"
+	`)
+	if e != nil {
+		t.Fatal(e)
+	}
+
+	arrayMapType := reflect.TypeOf([]map[string]string{})
+
+	// development
+	v, e := getValue(arrayMapType, tree, "database", "development")
+	if e != nil {
+		t.Fatal(e)
+	}
+	s, ok := v.Interface().([]map[string]string)
+	if !ok || len(s) != 1 || s[0]["user"] != "devuser1" {
+		t.Error(fmt.Sprintf("failed to load user data: %v", v))
+	}
+	log.Println("array map 1:", s)
+
+	// production
+	v, e = getValue(arrayMapType, tree, "database", "production")
+	if e != nil {
+		t.Fatal(e)
+	}
+	s, ok = v.Interface().([]map[string]string)
+	if !ok || len(s) != 2 || s[0]["user"] != "user1" {
+		t.Error(fmt.Sprintf("failed to load user data: %v", v))
+	}
+	log.Println("arrya map 2:", s)
+}
