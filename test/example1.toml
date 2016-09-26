@@ -1,0 +1,13 @@
+int1 = 1
+float1 = 0.1
+string1 = "string 1"
+bool1 = true
+date1 = 1980-01-01T00:00:00Z
+array1 = [1, 2, 3]
+
+[development]
+int1 = 2
+
+[production]
+float1 = 0.5
+array1 = [4, 5]
