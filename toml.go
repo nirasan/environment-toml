@@ -1,13 +1,13 @@
 package toml
 
 import (
+	"errors"
 	"fmt"
 	"github.com/pelletier/go-toml"
 	"go/ast"
 	"reflect"
+	"time"
 	"unicode"
-
-	"errors"
 )
 
 var nilValue = reflect.ValueOf(nil)
@@ -46,12 +46,14 @@ func Load(v interface{}, file string, env string) error {
 }
 
 func getValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (reflect.Value, error) {
-	switch t.Kind() {
-	case reflect.Struct:
+	switch {
+	case t == reflect.TypeOf(time.Time{}):
+		return getBasicValue(t, tree, elem, env)
+	case t.Kind() == reflect.Struct:
 		return getStructValue(t, tree, elem, env)
-	case reflect.Map:
+	case t.Kind() == reflect.Map:
 		return getMapValue(t, tree, elem, env)
-	case reflect.Array, reflect.Slice:
+	case t.Kind() == reflect.Array, t.Kind() == reflect.Slice:
 		return getArrayValue(t, tree, elem, env)
 	default:
 		return getBasicValue(t, tree, elem, env)
