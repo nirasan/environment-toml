@@ -22,7 +22,7 @@ func Load(v interface{}, file string, env string) error {
 		return fmt.Errorf("v must not be nil")
 	}
 	rv := reflect.ValueOf(v)
-	if rv.Kind() != reflect.Ptr || rv.Elem().Kind() != reflect.Struct {
+	if rv.IsValid() && rv.Kind() != reflect.Ptr || rv.Elem().Kind() != reflect.Struct {
 		return fmt.Errorf("v must be a struct pointer")
 	}
 

@@ -36,7 +36,6 @@ array1 = [4, 5]
 func ExampleLoad_example1development() {
 	c := &Example1Config{}
 
-
 	err := toml.Load(c, "test/example1.toml", "development")
 	if err != nil {
 		log.Fatal(err)
@@ -63,6 +62,3 @@ func ExampleLoad_example1production() {
 	// Output:
 	// &{Int1:1 Float1:0.5 String1:string 1 Bool1:true Date1:1980-01-01 00:00:00 +0000 UTC Array1:[4 5]}
 }
-
-
-
