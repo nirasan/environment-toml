@@ -115,10 +115,9 @@ func getMapValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (reflect
 			return nilValue, err
 		}
 		newTree := tree.Get(p)
-		switch val := newTree.(type) {
-		case *toml.TomlTree:
+		if val, ok := newTree.(*toml.TomlTree); ok {
 			target = val
-		default:
+		} else {
 			return nilValue, errors.New("invalud tree")
 		}
 	}
@@ -146,10 +145,9 @@ func getStructValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (refl
 			return nilValue, err
 		}
 		newTree := tree.Get(p)
-		switch val := newTree.(type) {
-		case *toml.TomlTree:
+		if val, ok := newTree.(*toml.TomlTree); ok {
 			target = val
-		default:
+		} else {
 			return nilValue, errors.New("invalid tree")
 		}
 	}
