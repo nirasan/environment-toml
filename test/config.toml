@@ -1,0 +1,24 @@
+user = "master user"
+password = "master password"
+max_connection = 100
+show_slow_query = false
+addresses = ["192.168.0.1", "192.168.0.2"]
+
+[development]
+password = "12345"
+max_connection = 1
+show_slow_query = true
+
+[production]
+timeout = 0.5
+
+[postgres]
+user = "pelletier"
+password = "mypassword"
+
+[postgres.development]
+user = "root"
+password = ""
+
+[postgres.production]
+user = "rwuser"
