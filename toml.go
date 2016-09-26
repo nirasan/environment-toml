@@ -129,7 +129,8 @@ func getArrayValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (refle
 	}
 	v := tree.Get(p)
 	et := t.Elem()
-	rv := reflect.New(t)
+	rv := reflect.New(t).Elem()
+	
 	switch ary := v.(type) {
 	case []*toml.TomlTree:
 		for _, childTree := range ary {
@@ -169,7 +170,7 @@ func getMapValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (reflect
 		}
 	}
 	// get map value from tree
-	rv := reflect.New(t)
+	rv := reflect.New(t).Elem()
 	for _, k := range target.Keys() {
 		kv := reflect.ValueOf(k)
 		rv.SetMapIndex(kv, reflect.ValueOf(target.Get(k)))
@@ -197,7 +198,7 @@ func getStructValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (refl
 		}
 	}
 	// get struct value from tree
-	rv := reflect.New(t)
+	rv := reflect.New(t).Elem()
 	for i := 0; i < t.NumField(); i++ {
 		fv := rv.Field(i)
 		ft := t.Field(i)
