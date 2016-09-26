@@ -1,12 +1,62 @@
 package toml
 
 import (
+	"fmt"
 	"github.com/pelletier/go-toml"
+	"log"
 	"reflect"
 	"testing"
-	"fmt"
-	"log"
 )
+
+func TestLoad(t *testing.T) {
+
+	type Postgres struct {
+		User     string
+		Password string
+		Tables   []string
+	}
+
+	type Conf struct {
+		User          string
+		Password      string
+		MaxConnection int64
+		ShowSlowQuery bool
+		Addresses     []string
+		Postgres      Postgres
+	}
+
+	// development
+	{
+		c := &Conf{}
+		err := Load(c, "test/config.toml", "development")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if c.User != "master user" || c.Password != "12345" || c.MaxConnection != 1 || c.ShowSlowQuery != true || len(c.Addresses) != 2 || c.Addresses[0] != "192.168.0.1" {
+			t.Error(fmt.Sprintf("failed to load conf: %v", c))
+		}
+		if c.Postgres.User != "root" || c.Postgres.Password != "" || len(c.Postgres.Tables) != 3 || c.Postgres.Tables[2] != "debuglog" {
+			t.Error(fmt.Sprintf("failed to load struct: %v", c))
+		}
+		log.Println(c)
+	}
+
+	// production
+	{
+		c := &Conf{}
+		err := Load(c, "test/config.toml", "production")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if c.User != "master user" || c.Password != "master password" || c.MaxConnection != 100 || c.ShowSlowQuery != false || len(c.Addresses) != 3 || c.Addresses[0] != "10.0.0.1" {
+			t.Error(fmt.Sprintf("failed to load conf: %v", c))
+		}
+		if c.Postgres.User != "rouser" || c.Postgres.Password != "mypassword" || len(c.Postgres.Tables) != 2 || c.Postgres.Tables[1] != "password" {
+			t.Error(fmt.Sprintf("failed to load struct: %v", c))
+		}
+		log.Println(c)
+	}
+}
 
 func TestGetValue_basic(t *testing.T) {
 	tree, e := toml.Load(`

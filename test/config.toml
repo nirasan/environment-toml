@@ -11,14 +11,17 @@ show_slow_query = true
 
 [production]
 timeout = 0.5
+addresses = ["10.0.0.1", "10.0.0.2", "10.0.0.3"]
 
 [postgres]
-user = "pelletier"
+user = "postgresuser"
 password = "mypassword"
+tables = ["user", "password"]
 
 [postgres.development]
 user = "root"
 password = ""
+tables = ["user", "password", "debuglog"]
 
 [postgres.production]
-user = "rwuser"
+user = "rouser"

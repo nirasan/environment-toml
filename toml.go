@@ -81,7 +81,7 @@ func getArrayValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (refle
 	v := tree.Get(p)
 	et := t.Elem()
 	rv := reflect.MakeSlice(t, 0, 0)
-	
+
 	switch ary := v.(type) {
 	case []*toml.TomlTree:
 		for _, childTree := range ary {
