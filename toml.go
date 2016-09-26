@@ -10,6 +10,8 @@ import (
 	"errors"
 )
 
+var nilValue = reflect.ValueOf(nil)
+
 func Load(v interface{}, file string, env string) error {
 	tree, err := toml.LoadFile(file)
 	if err != nil {
@@ -42,57 +44,6 @@ func Load(v interface{}, file string, env string) error {
 	}
 	return nil
 }
-
-//func getData(t reflect.Type, tree *toml.TomlTree, path, elem, env string) reflect.Value {
-//	envPath := createPath(path, env, elem)
-//	elemPath := createPath(path, elem)
-//	switch t.Kind() {
-//	case reflect.Struct:
-//		rv := reflect.New(t)
-//		for i := 0; i < t.NumField(); i++ {
-//			fv := rv.Field(i)
-//			ft := t.Field(i)
-//			if !ast.IsExported(ft.Name) {
-//				continue
-//			}
-//			name := getFieldName(ft)
-//			rv.Field(i).Set(getData(fv, tree, elemPath, name, env))
-//		}
-//		return rv
-//	case reflect.Array, reflect.Slice:
-//		rv := reflect.New(t).Elem()
-//		p := elemPath
-//		if tree.Has(envPath) {
-//			p = envPath
-//		}
-//		node := tree.Get(p)
-//		switch val := node.(type) {
-//		// for primitive array
-//		case []interface{}:
-//			for _, el := range val {
-//				rv = reflect.Append(rv, reflect.ValueOf(el))
-//			}
-//		// for map of array
-//		case []*toml.TomlTree:
-//			for i, childTree := range val {
-//				value := getData(t.Elem(), childTree, "", , env)
-//				log.Printf("%T %v", value, value)
-//				rv = reflect.Append(rv, value)
-//			}
-//		default:
-//		}
-//		return rv
-//	default:
-//		if tree.Has(envPath) {
-//			return reflect.ValueOf(tree.Get(envPath))
-//		} else if tree.Has(elemPath) {
-//			return reflect.ValueOf(tree.Get(elemPath))
-//		}
-//	}
-//	return reflect.ValueOf(nil)
-//}
-
-var nilValue = reflect.ValueOf(nil)
 
 func getValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (reflect.Value, error) {
 	switch t.Kind() {

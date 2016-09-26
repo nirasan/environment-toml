@@ -104,7 +104,6 @@ func TestGetValue_struct(t *testing.T) {
 		fmt.Errorf("failed to load user data: %v", v)
 	}
 	log.Println(v)
-
 }
 
 /*
