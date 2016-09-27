@@ -72,8 +72,11 @@ fmt.Println( c.User.Age ) //=> 20 | user.age overwritten by user.production.age
 # Examples
 
 [Basic types (environment: development)](https://godoc.org/github.com/nirasan/environment-toml#example-Load--Example1development)
+
 [Basic types (environment: production)](https://godoc.org/github.com/nirasan/environment-toml#example-Load--Example1production)
+
 [Struct type (environment: development)](https://godoc.org/github.com/nirasan/environment-toml#example-Load--Example2development)
+
 [Struct type (environment: production)](https://godoc.org/github.com/nirasan/environment-toml#example-Load--Example2production)
 
 # License
