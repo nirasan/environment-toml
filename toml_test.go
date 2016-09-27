@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"github.com/pelletier/go-toml"
 	"log"
+	"math"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestLoad(t *testing.T) {
@@ -19,7 +21,7 @@ func TestLoad(t *testing.T) {
 	type Conf struct {
 		User          string
 		Password      string
-		MaxConnection int64
+		MaxConnection int
 		ShowSlowQuery bool
 		Addresses     []string
 		Postgres      Postgres
@@ -58,7 +60,7 @@ func TestLoad(t *testing.T) {
 	}
 }
 
-func TestGetValue_basic(t *testing.T) {
+func TestGetValue_string(t *testing.T) {
 	tree, e := toml.Load(`
 	user = "admin"
 	pass = "admin"
@@ -87,6 +89,39 @@ func TestGetValue_basic(t *testing.T) {
 	}
 	if v.Interface().(string) != "admin" {
 		t.Error(fmt.Sprintf("failed to load user data: %v", v))
+	}
+}
+
+func TestGetValue_int(t *testing.T) {
+	tree, e := toml.Load(`
+	age = 10
+	[development]
+	age = 20
+	`)
+	if e != nil {
+		t.Fatal(e)
+	}
+
+	var n int
+	intType := reflect.TypeOf(n)
+
+	// development
+	v, e := getValue(intType, tree, "age", "development")
+	if e != nil {
+		t.Fatal(e)
+	}
+	if v.Interface().(int) != 20 {
+		t.Error(fmt.Sprintf("failed to load age data: %v", v))
+	}
+
+	// production
+	v, e = getValue(intType, tree, "age", "production")
+	if e != nil {
+		t.Fatal(e)
+
+	}
+	if v.Interface().(int) != 10 {
+		t.Error(fmt.Sprintf("failed to load age data: %v", v))
 	}
 }
 
@@ -289,4 +324,102 @@ func TestGetValue_arraymap(t *testing.T) {
 		t.Error(fmt.Sprintf("failed to load user data: %v", v))
 	}
 	log.Println("arrya map 2:", s)
+}
+
+func TestSetStructFieldValue(t *testing.T) {
+	type Conf struct {
+		Num     int
+		Num8    int8
+		Num16   int16
+		Num32   int32
+		Num64   int64
+		Unum    uint
+		Unum8   uint8
+		Unum16  uint16
+		Unum32  uint32
+		Unum64  uint64
+		Fnum32  float32
+		Fnum64  float64
+		Bool1   bool
+		String1 string
+		Date1   time.Time
+		Slice1  []int
+	}
+
+	c := &Conf{}
+	cv := reflect.ValueOf(c).Elem()
+
+	// Int, Uint
+	{
+		examples := []struct {
+			Name    string
+			Num     int64
+			Success bool
+		}{
+			{Name: "Num", Num: 1, Success: true},
+			{Name: "Num", Num: math.MaxInt64, Success: true},
+			{Name: "Num8", Num: 1, Success: true},
+			{Name: "Num8", Num: math.MaxInt8, Success: true},
+			{Name: "Num8", Num: math.MaxInt64, Success: false},
+			{Name: "Num16", Num: 1, Success: true},
+			{Name: "Num16", Num: math.MaxInt16, Success: true},
+			{Name: "Num16", Num: math.MaxInt64, Success: false},
+			{Name: "Num32", Num: 1, Success: true},
+			{Name: "Num32", Num: math.MaxInt32, Success: true},
+			{Name: "Num32", Num: math.MaxInt64, Success: false},
+			{Name: "Num64", Num: 1, Success: true},
+			{Name: "Num64", Num: math.MaxInt64, Success: true},
+			{Name: "Unum", Num: 1, Success: true},
+			{Name: "Unum", Num: -1, Success: false},
+			{Name: "Unum", Num: math.MaxInt64, Success: true},
+			{Name: "Unum8", Num: 1, Success: true},
+			{Name: "Unum8", Num: -1, Success: false},
+			{Name: "Unum8", Num: math.MaxInt64, Success: false},
+			{Name: "Unum16", Num: 1, Success: true},
+			{Name: "Unum16", Num: -1, Success: false},
+			{Name: "Unum16", Num: math.MaxInt64, Success: false},
+			{Name: "Unum32", Num: 1, Success: true},
+			{Name: "Unum32", Num: -1, Success: false},
+			{Name: "Unum32", Num: math.MaxInt64, Success: false},
+			{Name: "Unum64", Num: 1, Success: true},
+			{Name: "Unum64", Num: -1, Success: false},
+			{Name: "Unum64", Num: math.MaxInt64, Success: true},
+		}
+
+		for _, example := range examples {
+			fs, _ := cv.Type().FieldByName(example.Name)
+			v, e := castValue(fs.Type, reflect.ValueOf(example.Num))
+			if example.Success && e != nil {
+				t.Error(fmt.Sprintln("Error:", example, v, e))
+			} else if !example.Success && e == nil {
+				t.Error(fmt.Sprintln("Error:", example, v, e))
+			}
+		}
+	}
+
+	// Float
+	{
+		examples := []struct {
+			Name    string
+			Num     float64
+			Success bool
+		}{
+			{Name: "Fnum32", Num: 1, Success: true},
+			{Name: "Fnum32", Num: math.MaxFloat32, Success: true},
+			{Name: "Fnum32", Num: math.MaxFloat64, Success: false},
+			{Name: "Fnum64", Num: 1, Success: true},
+			{Name: "Fnum64", Num: math.MaxFloat64, Success: true},
+		}
+
+		for _, example := range examples {
+			fs, _ := cv.Type().FieldByName(example.Name)
+			v, e := castValue(fs.Type, reflect.ValueOf(example.Num))
+			if example.Success && e != nil {
+				t.Error(fmt.Sprintln("Error:", example, v,
+					e))
+			} else if !example.Success && e == nil {
+				t.Error(fmt.Sprintln("Error:", example, v, e))
+			}
+		}
+	}
 }

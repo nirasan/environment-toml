@@ -45,6 +45,40 @@ func Load(v interface{}, file string, env string) error {
 	return nil
 }
 
+func castValue(t reflect.Type, v reflect.Value) (reflect.Value, error) {
+	switch t.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		n := v.Interface().(int64)
+		rv := reflect.New(t).Elem()
+		if rv.OverflowInt(n) {
+			return nilValue, errors.New(fmt.Sprintf("%s is overflow: %v", t.Name, v))
+		}
+		rv.SetInt(n)
+		return rv, nil
+	case reflect.Uint, reflect.Uintptr, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		n := v.Interface().(int64)
+		rv := reflect.New(t).Elem()
+		if n < 0 {
+			return nilValue, errors.New(fmt.Sprintf("%s is overflow: %v", t.Name, v))
+		}
+		if rv.OverflowUint(uint64(n)) {
+			return nilValue, errors.New(fmt.Sprintf("%s is overflow: %v", t.Name, v))
+		}
+		rv.SetUint(uint64(n))
+		return rv, nil
+	case reflect.Float32, reflect.Float64:
+		n := v.Interface().(float64)
+		rv := reflect.New(t).Elem()
+		if rv.OverflowFloat(n) {
+			return nilValue, errors.New(fmt.Sprintf("%s is overflow: %v", t.Name, v))
+		}
+		rv.SetFloat(n)
+		return rv, nil
+	default:
+		return v, nil
+	}
+}
+
 func getValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (reflect.Value, error) {
 	switch {
 	case t == reflect.TypeOf(time.Time{}):
@@ -56,7 +90,11 @@ func getValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (reflect.Va
 	case t.Kind() == reflect.Array, t.Kind() == reflect.Slice:
 		return getArrayValue(t, tree, elem, env)
 	default:
-		return getBasicValue(t, tree, elem, env)
+		v, e := getBasicValue(t, tree, elem, env)
+		if e == nil {
+			return castValue(t, v)
+		}
+		return v, e
 	}
 }
 
@@ -66,7 +104,22 @@ func getBasicValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (refle
 		return nilValue, err
 	}
 	v := tree.Get(p)
-	if reflect.TypeOf(v) != t {
+	vt := reflect.TypeOf(v)
+	if vt.Kind() == reflect.Int64 {
+		switch t.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uintptr, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			//nop
+		default:
+			return nilValue, errors.New(fmt.Sprint("invalid type:", t, vt))
+		}
+	} else if vt.Kind() == reflect.Float64 {
+		switch t.Kind() {
+		case reflect.Float32, reflect.Float64:
+			//nop
+		default:
+			return nilValue, errors.New(fmt.Sprint("invalid type:", t, vt))
+		}
+	} else if reflect.TypeOf(v) != t {
 		return nilValue, errors.New("invalid type")
 	}
 	return reflect.ValueOf(v), nil
@@ -95,7 +148,11 @@ func getArrayValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (refle
 		}
 	case []interface{}:
 		for _, a := range ary {
-			rv = reflect.Append(rv, reflect.ValueOf(a))
+			av, e := castValue(et, reflect.ValueOf(a))
+			if e != nil {
+				return nilValue, errors.New("Invalid type")
+			}
+			rv = reflect.Append(rv, av)
 		}
 	default:
 		return nilValue, errors.New("Invalid type")

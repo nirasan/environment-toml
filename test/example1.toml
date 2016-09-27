@@ -1,9 +1,19 @@
 int1 = 1
+int2 = 1
+int3 = 1
+int4 = 1
+int5 = 1
+int6 = 1
+int7 = 1
+int8 = 1
+int9 = 1
 float1 = 0.1
+float2 = 0.1
 string1 = "string 1"
 bool1 = true
 date1 = 1980-01-01T00:00:00Z
 array1 = [1, 2, 3]
+array2 = [1, 2, 3]
 
 [development]
 int1 = 2
