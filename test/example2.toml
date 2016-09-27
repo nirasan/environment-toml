@@ -1,0 +1,10 @@
+[user]
+name = "user1"
+age = 10
+
+[user.development]
+name = "user2"
+
+[user.production]
+name = "user3"
+age = 20
