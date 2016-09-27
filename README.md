@@ -4,7 +4,7 @@ Go library for environment specific settings loader defined by [TOML](https://gi
 
 # Features
 
-* Load TOML and return setting struct.
+* Load TOML and setup setting struct.
 * When environment specific setting defined, overwrite default settings.
 
 # Usage
