@@ -1,11 +1,18 @@
 # environment-toml
 
-Go library for environment specific settings loader defined by [TOML](https://github.com/mojombo/toml).
+Go library for environment specific settings loader defined by [TOML](https://github.com/toml-lang/toml).
 
 # Features
 
 * Load TOML and setup setting struct.
 * When environment specific setting defined, overwrite default settings.
+
+# Install
+
+```sh
+go get github.com/pelletier/go-toml
+go get github.com/nirasan/environment-toml
+```
 
 # Usage
 
