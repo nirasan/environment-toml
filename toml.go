@@ -79,7 +79,7 @@ func castValue(t reflect.Type, v reflect.Value) (reflect.Value, error) {
 	}
 }
 
-func getValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (reflect.Value, error) {
+func getValue(t reflect.Type, tree *toml.Tree, elem, env string) (reflect.Value, error) {
 	switch {
 	case t == reflect.TypeOf(time.Time{}):
 		return getBasicValue(t, tree, elem, env)
@@ -98,7 +98,7 @@ func getValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (reflect.Va
 	}
 }
 
-func getBasicValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (reflect.Value, error) {
+func getBasicValue(t reflect.Type, tree *toml.Tree, elem, env string) (reflect.Value, error) {
 	p, err := findPath(tree, elem, env)
 	if err != nil {
 		return nilValue, err
@@ -125,7 +125,7 @@ func getBasicValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (refle
 	return reflect.ValueOf(v), nil
 }
 
-func getArrayValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (reflect.Value, error) {
+func getArrayValue(t reflect.Type, tree *toml.Tree, elem, env string) (reflect.Value, error) {
 	if t.Kind() != reflect.Array && t.Kind() != reflect.Slice {
 		return nilValue, errors.New("invalid type")
 	}
@@ -138,7 +138,7 @@ func getArrayValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (refle
 	rv := reflect.MakeSlice(t, 0, 0)
 
 	switch ary := v.(type) {
-	case []*toml.TomlTree:
+	case []*toml.Tree:
 		for _, childTree := range ary {
 			ev, e := getValue(et, childTree, "", elem)
 			if e != nil {
@@ -160,7 +160,7 @@ func getArrayValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (refle
 	return rv, nil
 }
 
-func getMapValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (reflect.Value, error) {
+func getMapValue(t reflect.Type, tree *toml.Tree, elem, env string) (reflect.Value, error) {
 	if t.Kind() != reflect.Map || t.Key().Kind() != reflect.String {
 		return nilValue, errors.New("invalid type")
 	}
@@ -172,7 +172,7 @@ func getMapValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (reflect
 			return nilValue, err
 		}
 		newTree := tree.Get(p)
-		if val, ok := newTree.(*toml.TomlTree); ok {
+		if val, ok := newTree.(*toml.Tree); ok {
 			target = val
 		} else {
 			return nilValue, errors.New("invalud tree")
@@ -190,7 +190,7 @@ func getMapValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (reflect
 	return rv, nil
 }
 
-func getStructValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (reflect.Value, error) {
+func getStructValue(t reflect.Type, tree *toml.Tree, elem, env string) (reflect.Value, error) {
 	if t.Kind() != reflect.Struct {
 		return nilValue, errors.New("invalid type")
 	}
@@ -202,7 +202,7 @@ func getStructValue(t reflect.Type, tree *toml.TomlTree, elem, env string) (refl
 			return nilValue, err
 		}
 		newTree := tree.Get(p)
-		if val, ok := newTree.(*toml.TomlTree); ok {
+		if val, ok := newTree.(*toml.Tree); ok {
 			target = val
 		} else {
 			return nilValue, errors.New("invalid tree")
@@ -263,7 +263,7 @@ func createPath(in ...string) string {
 	return out
 }
 
-func findPath(tree *toml.TomlTree, elem, env string) (string, error) {
+func findPath(tree *toml.Tree, elem, env string) (string, error) {
 	envPath := createPath(env, elem)
 	elemPath := createPath(elem)
 	if tree.Has(envPath) {
